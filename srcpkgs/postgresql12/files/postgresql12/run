@@ -1,0 +1,24 @@
+#!/bin/sh
+. /opt/psql12/etc/default/postgresql
+: ${PGDATA:="$PGROOT/data"}
+
+if [ "$PGROOT" != "/var/lib/postgresql12" ]; then
+	echo "Creating symlink /var/lib/postgresql12 -> $PGROOT"
+	ln -sf "$PGROOT" /var/lib/postgresql12
+fi
+
+
+if [ ! -d "$PGDATA" ]; then
+	echo "Initializing database in $PGDATA"
+
+	mkdir -p "$PGDATA"
+	chown -R postgres:postgres "$PGDATA"
+	chmod 0700 "$PGDATA"
+	su - postgres -m -c "/opt/psql12/bin/initdb $INITOPTS -D '$PGDATA'" >/dev/null
+
+	if [ -f /opt/psql12/etc/postgresql/postgresql.conf ]; then
+		ln -sf /opt/psql12/etc/postgresql/postgresql.conf "$PGDATA/postgresql.conf"
+	fi
+fi
+
+exec chpst -u postgres:postgres /opt/psql12/bin/postgres -D "$PGDATA" $PGOPTS 2>&1
